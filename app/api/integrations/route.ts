@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { clientPromise } from "@/lib/mongodb";
+import { clientPromise } from "@/lib/server/mongodb";
 import { ObjectId } from "mongodb";
 
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
-import { clientPromise } from "@/lib/mongodb";
+import { clientPromise } from "@/lib/server/mongodb";
 import { ObjectId } from "mongodb";
 
 export async function DELETE(

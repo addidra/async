@@ -1,4 +1,4 @@
-import { Collection, MongoClient, MongoClientOptions } from 'mongodb';
+import { MongoClient, MongoClientOptions } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
 
@@ -16,10 +16,6 @@ declare global {
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
-// let usersCollection: Collection;
-// let integrationsCollection: Collection;
-// let integrationCredentialsCollection: Collection;
-// let modulesCollection: Collection;
 
 if (process.env.NODE_ENV === 'development') {
     // In development mode, use a global variable to preserve the client promise
@@ -29,20 +25,18 @@ if (process.env.NODE_ENV === 'development') {
         global._mongoClientPromise = client.connect();
     }
     clientPromise = global._mongoClientPromise;
-    // usersCollection = (await clientPromise).db("async").collection("users");
-    // integrationsCollection = (await clientPromise).db("async").collection("integrations");
-    // integrationCredentialsCollection = (await clientPromise).db("async").collection("integration_credentials");
-    // modulesCollection = (await clientPromise).db("async").collection("modules");
 } else {
     // In production mode, it's best to not use a global variable.
     client = new MongoClient(uri, options);
     clientPromise = client.connect();
-    // usersCollection = (await clientPromise).db("async").collection("users");
-    // integrationsCollection = (await clientPromise).db("async").collection("integrations");
-    // integrationCredentialsCollection = (await clientPromise).db("async").collection("integration_credentials");
-    // modulesCollection = (await clientPromise).db("async").collection("modules");
+}
+
+async function getCollection(collection_name: string) {
+    const client = await clientPromise;
+    const db = client.db('async');
+    return db.collection(collection_name);
 }
 
 // Export a module-scoped MongoClient promise.
 // This client promise can be imported and awaited in your Next.js API routes or Server Actions.
-export { clientPromise };
+export { clientPromise, getCollection };

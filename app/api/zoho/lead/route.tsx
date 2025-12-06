@@ -1,4 +1,4 @@
-import { clientPromise } from "@/lib/mongodb";
+import { clientPromise } from "@/lib/server/mongodb";
 import { currentUser } from "@clerk/nextjs/server";
 import axios from "axios";
 
@@ -13,7 +13,7 @@ export async function POST(req:Request){
     const integrationCredentialsCollection = client.db("async").collection("integration_credentials");
     const creds = await integrationCredentialsCollection.findOne({ integrationId: integration._id });
     if (!creds) return new Response("Credentials not found", { status: 404 });
-    const accessToken = creds.accessTokenEnc;
+    const accessToken = creds.accessToken;
     try {
         const body = await req.json();
         const leadData = body.leadData;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { decrypt, encrypt } from "@/lib/utils";
-import { clientPromise } from "@/lib/mongodb";
+import { decrypt, encrypt } from "@/lib/server/crypto";
+import { clientPromise } from "@/lib/server/mongodb";
 
 export async function GET(req: Request) {
     try {
@@ -53,7 +53,7 @@ export async function GET(req: Request) {
             { userId },
             {
                 $set: {
-                    accessTokenEnc: encrypt(access_token),
+                    accessToken: encrypt(access_token),
                     refreshTokenEnc: refresh_token ? encrypt(refresh_token) : creds.refreshTokenEnc,
                     accessTokenExpiresAt: new Date(Date.now() + expires_in * 1000),
                 },

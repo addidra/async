@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { Integration, IntegrationCredential } from "@/models/models";
-import { clientPromise } from "@/lib/mongodb";
-import { encrypt, decrypt } from "@/lib/utils";
+import { clientPromise } from "@/lib/server/mongodb";
+import { encrypt, decrypt } from "@/lib/server/crypto";
 
 interface getTokenRequestBody {
     code: string;
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         clientIdEnc: encrypt(body.clientId),
         clientSecretEnc: encrypt(body.clientSecret),
         refreshTokenEnc: encrypt(creds.refresh_token),
-        accessTokenEnc: creds.access_token,
+        accessToken: creds.access_token,
         tokenExpiry: new Date(Date.now() + creds.expires_in),
         createdAt: new Date(),
         updatedAt: new Date(),

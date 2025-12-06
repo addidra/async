@@ -1,74 +1,105 @@
 import { currentUser } from '@clerk/nextjs/server';
-import axios from 'axios'
-import { clientPromise } from '@/lib/mongodb';
-import { decrypt } from '@/lib/utils';
-export async function GET() {
-    // const accessToken = process.env.zoho_access_token;
-    const user = await currentUser();
-    if (!user) return new Response("Unauthorized", { status: 401 });
-    const client = await clientPromise;
-    const integrationCollection = client.db("async").collection("integrations");
-    const integration = await integrationCollection.findOne({ clerkId: user.id });
-    if (!integration) return new Response("Integration not found", { status: 404 });
-    const integrationCredentialsCollection = client.db("async").collection("integration_credentials");
-    const creds = await integrationCredentialsCollection.findOne({ integrationId: integration._id });
-    if (!creds) return new Response("Credentials not found", { status: 404 });
-    const accessToken = creds.accessTokenEnc;
-    const refreshToken = decrypt(creds.refreshTokenEnc);
-    const clientId = decrypt(creds.clientIdEnc);
-    const clientSecret = decrypt(creds.clientSecretEnc);
-    try {
-        const res = await axios.get(
-            "https://www.zohoapis.com/crm/v8/settings/fields?module=Leads",
-            {
-                headers: {
-                    Authorization: `Zoho-oauthtoken ${accessToken}`,
-                    "Content-Type": "application/json",
-                },
-            }
-        );
-        return Response.json(res.data);
-    } catch (error: any) {
-        console.error("Zoho schema fetch error:", error.response?.data || error)
-        if (error.response.data.code == "INVALID_TOKEN") {
-            console.log("Access token expired, refreshing...")
-            // Refresh token logic can be implemented here
-            const res = await fetch(
-                `https://accounts.zoho.com/oauth/v2/token?refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}&grant_type=refresh_token&scope=ZohoCRM.modules.ALL,ZohoCRM.settings.ALL`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                    },
-                }
-            );
-            const newTokenData = await res.json();
-            integrationCredentialsCollection.updateOne(
-                { integrationId: integration._id },
-                { $set: { accessTokenEnc: newTokenData.access_token } })
-            console.log("Token refreshed. Please retry the request.")
-            const resFields = await axios.get(
-                "https://www.zohoapis.com/crm/v8/settings/fields?module=Leads",
-                {
-                    headers: {
-                        Authorization: `Zoho-oauthtoken ${newTokenData.access_token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-            return Response.json(resFields.data);
+import axios from 'axios';
+import { clientPromise } from '@/lib/server/mongodb';
+import { refreshToken } from '@/lib/server/token';
+import { decrypt } from '@/lib/server/crypto';
+
+async function fetchZohoFields(accessToken: string) {
+    const response = await axios.get(
+        "https://www.zohoapis.com/crm/v8/settings/fields?module=Leads",
+        {
+            headers: {
+                Authorization: `Zoho-oauthtoken ${accessToken}`,
+                "Content-Type": "application/json",
+            },
         }
+    );
+    return response.data;
+}
+
+export async function GET() {
+    try {
+        const user = await currentUser();
+        if (!user) {
+            return new Response("Unauthorized", { status: 401 });
+        }
+
+        const client = await clientPromise;
+        const integrationCollection = client.db("async").collection("integrations");
+        const integration = await integrationCollection.findOne({ clerkId: user.id });
+
+        if (!integration) {
+            return new Response("Integration not found", { status: 404 });
+        }
+
+        const integrationCredentialsCollection = client.db("async").collection("integration_credentials");
+        const creds = await integrationCredentialsCollection.findOne({ integrationId: integration._id });
+
+        if (!creds) {
+            return new Response("Credentials not found", { status: 404 });
+        }
+
+        let accessToken = creds.accessToken
+
+        try {
+            // Try with current access token
+            const data = await fetchZohoFields(accessToken);
+            return Response.json(data);
+        } catch (error: any) {
+            // Check if token is invalid
+            if (error.response?.data?.code === "INVALID_TOKEN") {
+                console.log("Access token expired, refreshing...");
+
+                try {
+                    // Refresh the token using your helper function
+                    const newAccessToken: string = await refreshToken();
+                    console.log("Token refreshed successfully");
+
+                    // Retry with new token
+                    const data = await fetchZohoFields(newAccessToken);
+                    return Response.json(data);
+                } catch (refreshError: any) {
+                    console.error("Token refresh failed:", refreshError);
+                    return new Response(
+                        JSON.stringify({
+                            success: false,
+                            error: "Failed to refresh authentication token",
+                            details: refreshError.message,
+                        }),
+                        {
+                            status: 401,
+                            headers: { "Content-Type": "application/json" },
+                        }
+                    );
+                }
+            }
+
+            // Other API errors
+            console.error("Zoho API error:", error.response?.data || error.message);
+            return new Response(
+                JSON.stringify({
+                    success: false,
+                    error: "Failed to fetch Zoho schema",
+                    details: error.response?.data || error.message,
+                }),
+                {
+                    status: error.response?.status || 500,
+                    headers: { "Content-Type": "application/json" },
+                }
+            );
+        }
+    } catch (error: any) {
+        console.error("Unexpected error:", error);
         return new Response(
             JSON.stringify({
                 success: false,
-                error: "Failed to fetch Zoho schema",
-                details: error?.response?.data || error.message,
+                error: "Internal server error",
+                details: error.message,
             }),
             {
-                status: error?.response?.status || 500,
+                status: 500,
                 headers: { "Content-Type": "application/json" },
             }
         );
     }
-
 }

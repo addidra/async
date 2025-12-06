@@ -13,7 +13,7 @@ interface IntegrationCredential {
     clientIdEnc: string;
     clientSecretEnc: string;
     refreshTokenEnc: string;
-    accessTokenEnc: string;
+    accessToken: string;
     tokenExpiry: Date;
     createdAt: Date;
     updatedAt: Date;
