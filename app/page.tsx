@@ -1,15 +1,22 @@
 // app/page.tsx
 import { currentUser } from "@clerk/nextjs/server";
 import ClientHome from "./ClientHome";
+import axios from "axios";
 
 export default async function HomePage() {
   const user = await currentUser();
   const username = user?.username || "User";
-  // const res = await fetch("https://jsonplaceholder.typicode.com/posts");
-  // const posts = await res.json();
-  // console.log(posts)
   console.log(username, user?.id)
   console.log(user)
+  // Example of fetching data from an API route
+  // const fetchFields = async () => {
+  //   try {
+  //     const response = await axios.get("/api/schema");
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error fetching fields:", error);
+  //   }
+  // };
 
   // You can fetch static data here if needed
 
