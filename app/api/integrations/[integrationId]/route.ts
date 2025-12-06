@@ -5,12 +5,13 @@ import { ObjectId } from "mongodb";
 
 export async function DELETE(
     req: NextRequest,
-    context: { params: { integrationId: string } }
+    context: { params: Promise<{ integrationId: string }> }
 ) {
     const user = await currentUser();
     if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
-    const integrationId = context.params.integrationId;
+    // Await the params promise
+    const { integrationId } = await context.params;
 
     const client = await clientPromise;
     const integrationCollection = client.db("async").collection("integrations");
