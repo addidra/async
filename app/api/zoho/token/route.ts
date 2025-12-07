@@ -55,12 +55,3 @@ export async function POST(req: Request) {
     await integrationCredentialCollection.insertOne(integrationCredential);
     return new Response(JSON.stringify({ message: 'Integration added successfully' }), { status: 200 });
 }
-
-// const data = {
-//     access_token: '1000.2de2ba67b21de2e35c5976c10ddf1fbb.01847c0aba2df5cf6276f2cb40468f1c',
-//     refresh_token: '1000.97e04fe63376764a26038db5f1f2cc7a.6ab5b9fc813a3a898c4d50667a3e28fe',
-//     scope: 'ZohoCRM.settings.ALL ZohoCRM.modules.all',
-//     api_domain: 'https://www.zohoapis.com',
-//     token_type: 'Bearer',
-//     expires_in: 3600
-// }

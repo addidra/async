@@ -2,7 +2,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import ClientHome from "./ClientHome";
 import axios from "axios";
-
+import Test from "./Test";
 export default async function HomePage() {
   const user = await currentUser();
   const username = user?.username || "User";
@@ -19,6 +19,6 @@ export default async function HomePage() {
   // };
 
   // You can fetch static data here if needed
-
+  // return <Test></Test>;
   return <ClientHome username={username} />;
 }
